@@ -37,13 +37,20 @@ import java.time.LocalDate;
 public class Transaction {
 
     /**
-     * The primary key - a unique ID for every row. GenerationType.IDENTITY
-     * means the database itself assigns the next number automatically
-     * (1, 2, 3...) every time a new Transaction is saved. We never set
-     * this by hand.
+     * The primary key - a unique ID for every row. A database sequence hands
+     * out the numbers, so we never set this by hand.
      */
+    // The id used to come from an "identity" column, which forces Hibernate
+    // to send every insert on its own, because it has to ask the database
+    // for each new id one at a time. A sequence lets Hibernate reserve 50
+    // ids in a single call and then insert 50 rows in one batch. For a
+    // 1,000 row statement that is the difference between roughly 1,000
+    // trips to the database and roughly 40. Over the internet to Supabase
+    // each trip costs tens of milliseconds, so this is what keeps the
+    // import inside its 5 second requirement.
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "transactions_seq")
+    @SequenceGenerator(name = "transactions_seq", sequenceName = "transactions_seq", allocationSize = 50)
     private Long id;
 
     /**
