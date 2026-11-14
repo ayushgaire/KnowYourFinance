@@ -36,7 +36,7 @@ jobs:
       # Downloads the repo's code onto the runner - without this step
       # there's nothing to build.
       - name: Check out code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       # Installs Java 21 (matching <java.version>21</java.version> in
       # pom.xml) and sets Maven up to cache downloaded dependencies
