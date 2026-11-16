@@ -1,23 +1,25 @@
 import { useEffect, useRef, useState } from "react";
 import "./App.css";
 import UploadStatement from "./components/UploadStatement";
+import Budgets from "./components/Budgets";
 import Dashboard from "./components/Dashboard";
 import TransactionList from "./components/TransactionList";
 import ManualEntry from "./components/ManualEntry";
 import ProfileBadge from "./components/ProfileBadge";
 import { getProfile } from "./api";
-import { DashboardIcon, UploadIcon, PlusIcon, ListIcon, LockIcon } from "./components/Icons";
+import { DashboardIcon, UploadIcon, PlusIcon, ListIcon, LockIcon, SavingsIcon } from "./components/Icons";
 
 const TABS = [
   { id: "dashboard", label: "Dashboard", icon: DashboardIcon },
   { id: "upload", label: "Upload Statements", icon: UploadIcon },
   { id: "manual", label: "Add Transaction", icon: PlusIcon },
   { id: "transactions", label: "Transactions", icon: ListIcon },
+  { id: "budgets", label: "Budgets", icon: SavingsIcon },
 ];
 
 /**
  * The app shell: one slim top bar (brand, nav, privacy promise),
- * a tab-based nav (no routing library - four views, swapped by state),
+ * a tab-based nav (no routing library - five views, swapped by state),
  * and the active view. `refreshKey` is the one piece of shared state:
  * bump it after anything that changes the transaction data (an import,
  * a manual add, an edit) and every view with it in a useEffect
@@ -83,7 +85,7 @@ function App() {
     <div className="app-shell">
       <a className="skip-link" href="#main">Skip to content</a>
 
-      {/* One slim bar on top: brand, the four views, and the privacy promise.
+      {/* One slim bar on top: brand, the five views, and the privacy promise.
           On phones the same nav moves to the bottom of the screen, where a
           thumb can reach it, with a small label under each icon. */}
       <header className="topbar">
@@ -134,6 +136,7 @@ function App() {
               onViewTransactions={goToTransactions}
             />
           )}
+          {activeTab === "budgets" && <Budgets refreshKey={refreshKey} />}
           {activeTab === "upload" && <UploadStatement onImported={handleImported} />}
           {activeTab === "manual" && <ManualEntry fullName={fullName} onAdded={handleManualAdd} />}
           {activeTab === "transactions" && (
