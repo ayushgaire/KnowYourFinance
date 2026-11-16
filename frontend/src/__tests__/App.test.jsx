@@ -29,10 +29,10 @@ afterEach(() => {
 });
 
 describe("app navigation", () => {
-  it("offers all four views by name, so screen readers and phone tab bars can use them", () => {
+  it("offers all five views by name, so screen readers and phone tab bars can use them", () => {
     render(<App />);
     const nav = screen.getByRole("navigation", { name: "Main" });
-    for (const name of ["Dashboard", "Upload Statements", "Add Transaction", "Transactions"]) {
+    for (const name of ["Dashboard", "Upload Statements", "Add Transaction", "Transactions", "Budgets"]) {
       expect(within(nav).getByRole("button", { name })).toBeTruthy();
     }
   });

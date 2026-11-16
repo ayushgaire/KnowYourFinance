@@ -232,3 +232,27 @@ export async function saveProfile(fullName) {
   }
   return response.json();
 }
+
+// Budget limits are scoped to the same current user as transactions.
+function budgetUrl(month, category) {
+  const [year, monthNumber] = month.split("-").map(Number);
+  return `${API_BASE}/budgets${category ? `/${encodeURIComponent(category)}` : ""}?userId=${CURRENT_USER_ID}&year=${year}&month=${monthNumber}`;
+}
+async function budgetResponse(response) {
+  if (!response.ok) {
+    const body = await response.json().catch(() => null);
+    throw new Error(body?.fieldErrors?.limitAmount || body?.message || `Budget request failed (${response.status})`);
+  }
+  return response.status === 204 ? null : response.json();
+}
+export async function getBudgets(month) {
+  return budgetResponse(await fetch(budgetUrl(month)));
+}
+export async function saveBudget(month, category, limitAmount) {
+  return budgetResponse(await fetch(budgetUrl(month, category), {
+    method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ limitAmount }),
+  }));
+}
+export async function removeBudget(month, category) {
+  return budgetResponse(await fetch(budgetUrl(month, category), { method: "DELETE" }));
+}

@@ -93,3 +93,7 @@ This is a COMP 425 (Software Engineering) semester project at SMSU, following a 
 ## Status
 
 Milestone 4 adds Docker, a build and publish pipeline, faster imports and trends, and a larger test suite (see [build log 19](docs/build-log/19-milestone-4-docker-ci-and-efficiency.md) and the [Milestone 4 test report](docs/testing/milestone-4-test-report.md)). There is no authentication yet: accounts are out of scope in the requirements specification. See each build-log entry's "what's intentionally missing" section for the full honest list.
+
+## Monthly category budgets
+
+Open **Budgets** to set category limits for a month, track expense progress, and see alerts at 80% and over budget. Limits are saved in the database; removing one leaves transactions untouched. See [the budget guide](docs/features/monthly-budgets.md) for behavior, API endpoints and deployment notes.
