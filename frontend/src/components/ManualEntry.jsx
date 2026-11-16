@@ -1,6 +1,6 @@
 import PageHero from "./PageHero";
 import { todayInput } from "../utils/dates";
-import { useState } from "react";
+import { useId, useState } from "react";
 import { addTransaction } from "../api";
 import { categoryLabel } from "../utils/format";
 import { initials } from "../utils/names";
@@ -24,6 +24,7 @@ const today = todayInput;
  * uploads do - no separate "cash mode," no different math downstream.
  */
 function ManualEntry({ fullName, onAdded }) {
+  const fieldId = useId();
   const [date, setDate] = useState(today());
   const [description, setDescription] = useState("");
   const [amount, setAmount] = useState("");
@@ -35,11 +36,28 @@ function ManualEntry({ fullName, onAdded }) {
 
   async function handleSubmit(e) {
     e.preventDefault();
-    setStatus("saving");
     setError(null);
-    setFieldErrors({});
+    const errors = {};
+    const amountInput = e.currentTarget.elements.namedItem("amount");
+    if (!amount) {
+      errors.amount = "Enter an amount.";
+    } else if (!Number.isFinite(Number(amount)) || Number(amount) < 0.01) {
+      errors.amount = "Enter an amount of at least $0.01.";
+    } else if (amountInput.validity.stepMismatch) {
+      errors.amount = "Enter an amount in whole cents (for example, 12.50).";
+    }
+    if (!description.trim()) errors.description = "Describe what this was.";
+    if (!date) errors.date = "Choose a date.";
+    setFieldErrors(errors);
+    if (Object.keys(errors).length) {
+      setError("Check the highlighted fields.");
+      setStatus("error");
+      e.currentTarget.elements.namedItem(Object.keys(errors)[0]).focus();
+      return;
+    }
+    setStatus("saving");
     try {
-      await addTransaction({ date, description, amount, type, category });
+      await addTransaction({ date, description: description.trim(), amount, type, category });
       setStatus("done");
       setDescription("");
       setAmount("");
@@ -93,6 +111,7 @@ function ManualEntry({ fullName, onAdded }) {
           <div className="amount-input">
             <span className="amount-input__prefix">$</span>
             <input
+              name="amount"
               type="number"
               step="0.01"
               min="0.01"
@@ -101,35 +120,40 @@ function ManualEntry({ fullName, onAdded }) {
               onChange={(e) => setAmount(e.target.value)}
               required
               aria-invalid={Boolean(fieldErrors.amount)}
+              aria-describedby={fieldErrors.amount ? `${fieldId}-amount-error` : undefined}
             />
           </div>
-          {fieldErrors.amount && <span className="field__error">{fieldErrors.amount}</span>}
+          {fieldErrors.amount && <span id={`${fieldId}-amount-error`} className="field__error">{fieldErrors.amount}</span>}
         </label>
 
         <label className="field">
           <span className="field__label">What was it?</span>
           <input
+            name="description"
             type="text"
             placeholder="e.g. Farmers market produce"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             required
             aria-invalid={Boolean(fieldErrors.description)}
+            aria-describedby={fieldErrors.description ? `${fieldId}-description-error` : undefined}
           />
-          {fieldErrors.description && <span className="field__error">{fieldErrors.description}</span>}
+          {fieldErrors.description && <span id={`${fieldId}-description-error`} className="field__error">{fieldErrors.description}</span>}
         </label>
 
         <div className="field-row">
           <label className="field">
             <span className="field__label">Date</span>
             <input
+              name="date"
               type="date"
               value={date}
               onChange={(e) => setDate(e.target.value)}
               required
               aria-invalid={Boolean(fieldErrors.date)}
+              aria-describedby={fieldErrors.date ? `${fieldId}-date-error` : undefined}
             />
-            {fieldErrors.date && <span className="field__error">{fieldErrors.date}</span>}
+            {fieldErrors.date && <span id={`${fieldId}-date-error`} className="field__error">{fieldErrors.date}</span>}
           </label>
 
           <label className="field">
@@ -147,7 +171,7 @@ function ManualEntry({ fullName, onAdded }) {
         </button>
 
         {status === "error" && (
-          <p className="error">
+          <p className="error" role="alert">
             <AlertIcon width={16} height={16} aria-hidden="true" /> {error}
           </p>
         )}
