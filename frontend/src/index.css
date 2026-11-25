@@ -8,6 +8,7 @@
 :root {
   /* Brand */
   --color-brand: #173f35; /* Deep Forest Green */
+  --color-accent-text: #173f35; /* brand-colored text on a light surface */
   --color-interactive: #236b55; /* Evergreen */
   --color-interactive-hover: #1c5745;
 
@@ -26,6 +27,15 @@
   --color-text: #18201d; /* Charcoal */
   --color-text-muted: #64706b; /* Slate */
   --color-text-on-brand: #f8f7f3;
+
+  /* Soft tints behind badges, icons and alerts */
+  --color-positive-soft: #e3f3ec;
+  --color-negative-soft: #f8ece9;
+  --color-info-soft: #e9f1f0;
+  --color-warning-soft: #fdf1dc;
+  --color-warning-text: #93630f;
+  --color-warning: #996415;
+  --color-over: #a33c32;
 
   /* Structure */
   --color-border: #dde4e0;
@@ -47,6 +57,41 @@
   --shadow-md: 0 4px 16px rgba(24, 32, 29, 0.08);
 
   color-scheme: light;
+}
+
+/* Dark theme: same tokens, different values. Only these variables change,
+   so every component picks the theme up without edits. */
+:root[data-theme="dark"] {
+  --color-brand: #10302a;
+  --color-accent-text: #7fd1b0;
+  --color-interactive: #2f8f70;
+  --color-interactive-hover: #3aa383;
+  --color-positive: #3fb98a;
+  --color-negative: #e0776b;
+  --color-info: #5aa6a2;
+  --color-gold: #d8b640;
+
+  --color-bg: #0f1613;
+  --color-surface: #17211d;
+  --color-surface-soft: #1f2d27;
+
+  --color-text: #e8eeea;
+  --color-text-muted: #9fb0a8;
+  --color-text-on-brand: #f4f7f5;
+
+  --color-positive-soft: #163328;
+  --color-negative-soft: #3a1f1b;
+  --color-info-soft: #17302f;
+  --color-warning-soft: #3a2e14;
+  --color-warning-text: #e6b865;
+  --color-warning: #d9a441;
+  --color-over: #e0776b;
+
+  --color-border: #2c3b35;
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.45);
+
+  color-scheme: dark;
 }
 
 * {
