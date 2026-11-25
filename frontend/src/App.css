@@ -2016,3 +2016,31 @@
   .budget-summary { gap: var(--space-2); }
   .budget-form__fields { align-items: stretch; flex-direction: column; }
 }
+
+/* Recurring bills panel on the dashboard */
+.recurring {
+  margin-top: var(--space-4);
+}
+
+.recurring__total {
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+.recurring__right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  white-space: nowrap;
+}
+
+.recurring__due {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+}
+
+.recurring__due--soon {
+  color: var(--color-negative);
+  font-weight: 600;
+}

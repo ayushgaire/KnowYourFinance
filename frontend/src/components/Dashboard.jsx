@@ -1,6 +1,8 @@
 import { firstName } from "../utils/names";
 import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { getMonthlyReport, getReportRange, listTransactions } from "../api";
+import RecurringBills from "./RecurringBills";
+import { detectRecurring } from "../utils/recurring";
 import { categoryLabel, formatCurrency, formatPercent } from "../utils/format";
 // The two chart components pull in the whole recharts library, which is
 // most of the app's download size. Loading them on demand lets the page
@@ -9,7 +11,7 @@ const TrendsChart = lazy(() => import("./TrendsChart"));
 const CategoryDonut = lazy(() => import("./CategoryDonut"));
 import EmptyState from "./EmptyState";
 import PageHero from "./PageHero";
-import { toLocalDateInput } from "../utils/dates";
+import { toLocalDateInput, todayInput } from "../utils/dates";
 import {
   IncomeIcon, ExpenseIcon, SavingsIcon, RateIcon,
   ArrowUpIcon, ArrowDownIcon, UploadIcon, PlusIcon,
@@ -54,6 +56,7 @@ function Dashboard({ fullName, refreshKey, onUploadClick, onAddClick, onViewTran
   const [error, setError] = useState(null);
 
   const [recent, setRecent] = useState([]);
+  const [allTransactions, setAllTransactions] = useState([]);
   const [recentLoading, setRecentLoading] = useState(true);
 
   // Which concrete year/month (or start/end) this periodType resolves to.
@@ -106,6 +109,7 @@ function Dashboard({ fullName, refreshKey, onUploadClick, onAddClick, onViewTran
         if (cancelled) return;
         const sorted = [...all].sort((a, b) => new Date(b.date) - new Date(a.date));
         setRecent(sorted.slice(0, 5));
+        setAllTransactions(all);
       })
       .catch(() => {
         /* the dashboard still works without this panel; the stat cards
@@ -118,6 +122,8 @@ function Dashboard({ fullName, refreshKey, onUploadClick, onAddClick, onViewTran
       cancelled = true;
     };
   }, [refreshKey]);
+
+  const recurringBills = useMemo(() => detectRecurring(allTransactions), [allTransactions]);
 
   const periodLabel =
     resolved.kind === "month"
@@ -286,6 +292,8 @@ function Dashboard({ fullName, refreshKey, onUploadClick, onAddClick, onViewTran
             )}
           </div>
           </div>
+
+          <RecurringBills bills={recurringBills} today={todayInput()} />
         </>
       )}
     </div>
