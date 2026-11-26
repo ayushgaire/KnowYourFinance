@@ -33,7 +33,7 @@ Stop the app with `docker compose down`. Your transactions stay in the `kyf-db-d
 
 ### Option 2: run the pieces directly
 
-Set the three Supabase variables from `.env.example` in your shell (`SPRING_DATASOURCE_URL`, `SPRING_DATASOURCE_USERNAME`, `SPRING_DATASOURCE_PASSWORD`), then:
+The backend has no built-in database address or login, so all three of these variables must be set in your shell before it will start: `SPRING_DATASOURCE_URL`, `SPRING_DATASOURCE_USERNAME` and `SPRING_DATASOURCE_PASSWORD`. For the hosted Supabase database, copy the values from the Session Pooler connection details in the Supabase dashboard (Project Settings > Database > Connection Pooling); `.env.example` shows the expected format. Running the backend this way does not read the `.env` file by itself. Then:
 
 ```bash
 # Terminal 1: backend (http://localhost:8080), needs Java 21 and Maven
