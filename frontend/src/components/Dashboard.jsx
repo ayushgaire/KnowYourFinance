@@ -293,6 +293,14 @@ function Dashboard({ fullName, refreshKey, onUploadClick, onAddClick, onViewTran
           </div>
           </div>
 
+          {resolved.kind === "month" && !recentLoading && !error && (
+            <SpendingCalendar
+              key={`${resolved.year}-${resolved.month}-${refreshKey}`}
+              transactions={allTransactions}
+              year={resolved.year}
+              month={resolved.month}
+            />
+          )}
           <RecurringBills bills={recurringBills} today={todayInput()} />
         </>
       )}
@@ -415,3 +423,73 @@ function RateCard({ rate, previousRate }) {
 }
 
 export default Dashboard;
+
+const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+
+function SpendingCalendar({ transactions, year, month }) {
+  const [selectedDay, setSelectedDay] = useState(null);
+  const expensesByDay = useMemo(() => {
+    const prefix = `${year}-${String(month).padStart(2, "0")}-`;
+    const days = new Map();
+    for (const row of transactions) {
+      if (row.type !== "EXPENSE" || !row.date?.startsWith(prefix) || !(Number(row.amount) > 0)) {
+        continue;
+      }
+      const day = Number(row.date.slice(8, 10));
+      const entry = days.get(day) ?? { total: 0, rows: [] };
+      entry.total += Number(row.amount);
+      entry.rows.push(row);
+      days.set(day, entry);
+    }
+    return days;
+  }, [transactions, year, month]);
+
+  const firstWeekday = (new Date(year, month - 1, 1).getDay() + 6) % 7;
+  const dayCount = new Date(year, month, 0).getDate();
+  const selected = expensesByDay.get(selectedDay);
+  const monthLabel = MONTH_NAMES[month - 1];
+
+  return (
+    <section className="panel" aria-labelledby="spending-calendar-title">
+      <h2 className="panel-title" id="spending-calendar-title">Spending calendar</h2>
+      <p className="muted">Select a day to see its recorded expenses.</p>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(7, minmax(0, 1fr))", gap: 4 }}>
+        {WEEKDAYS.map((day) => <span key={day} className="muted">{day}</span>)}
+        {Array.from({ length: firstWeekday }, (_, index) => <span key={`empty-${index}`} />)}
+        {Array.from({ length: dayCount }, (_, index) => {
+          const day = index + 1;
+          const entry = expensesByDay.get(day);
+          const label = entry ? formatCurrency(entry.total) : "no expenses recorded";
+          return (
+            <button
+              key={day}
+              type="button"
+              className={`btn ${selectedDay === day ? "btn--primary" : "btn--secondary"}`}
+              style={{ minWidth: 0, minHeight: 44, padding: 4, display: "grid", gap: 2 }}
+              aria-label={`${monthLabel} ${day}, ${label}`}
+              aria-pressed={selectedDay === day}
+              onClick={() => setSelectedDay(day)}
+            >
+              <span>{day}</span>
+              <span style={{ fontSize: "0.75rem", overflow: "hidden", textOverflow: "ellipsis" }}>
+                {entry ? formatCurrency(entry.total) : "—"}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+      {selectedDay !== null && (
+        <div aria-live="polite">
+          <h3 className="panel-title">{monthLabel} {selectedDay}{selected && ` · ${formatCurrency(selected.total)}`}</h3>
+          {selected ? (
+            <ul>
+              {selected.rows.map((row, index) => (
+                <li key={row.id ?? index}>{row.description} · {formatCurrency(row.amount)}</li>
+              ))}
+            </ul>
+          ) : <p>No expenses recorded for this day.</p>}
+        </div>
+      )}
+    </section>
+  );
+}
