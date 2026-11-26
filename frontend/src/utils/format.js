@@ -40,7 +40,7 @@ export function categoryLabel(category) {
 const CATEGORY_COLORS = {
   GROCERIES: "#236b55",
   DINING: "#c9a227",
-  RENT_MORTGAGE: "#173f35",
+  RENT_MORTGAGE: "#3f5f8f",
   UTILITIES: "#397b78",
   SUBSCRIPTIONS: "#6b8f7d",
   TRANSPORTATION: "#5c7a8a",

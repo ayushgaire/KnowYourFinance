@@ -6,6 +6,7 @@ import Dashboard from "./components/Dashboard";
 import TransactionList from "./components/TransactionList";
 import ManualEntry from "./components/ManualEntry";
 import ProfileBadge from "./components/ProfileBadge";
+import ThemeToggle from "./components/ThemeToggle";
 import { getProfile } from "./api";
 import { DashboardIcon, UploadIcon, PlusIcon, ListIcon, LockIcon, SavingsIcon } from "./components/Icons";
 
@@ -121,6 +122,7 @@ function App() {
             Your finances. Your data. Your control.
           </p>
 
+          <ThemeToggle />
           <ProfileBadge fullName={fullName} onSaved={setFullName} />
         </div>
       </header>
