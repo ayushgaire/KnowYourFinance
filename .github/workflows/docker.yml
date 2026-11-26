@@ -88,6 +88,19 @@ jobs:
           curl -fsS http://localhost:3000/ | grep -q "<div id=\"root\">"
           # A deep link must fall back to the app, not return a 404.
           curl -fsS -o /dev/null -w "%{http_code}\n" http://localhost:3000/some/deep/link | grep -q 200
+      - name: Security headers are sent with the page and its files
+        run: |
+          asset=$(curl -fsS http://localhost:3000/ | grep -o '/assets/[^"]*\.js' | head -n 1)
+          test -n "$asset"
+          for path in / /some/deep/link /theme-init.js "$asset"; do
+            echo "Checking $path"
+            headers=$(curl -fsSI "http://localhost:3000$path")
+            for name in X-Content-Type-Options X-Frame-Options Referrer-Policy Permissions-Policy Content-Security-Policy; do
+              echo "$headers" | grep -qi "^$name:" || { echo "$name is missing"; exit 1; }
+            done
+          done
+          # The theme script must be a real file, not the page returned as a fallback.
+          curl -fsS http://localhost:3000/theme-init.js | grep -q "kyf-theme"
       - name: Show container logs if something failed
         if: failure()
         run: docker logs kyf-web
