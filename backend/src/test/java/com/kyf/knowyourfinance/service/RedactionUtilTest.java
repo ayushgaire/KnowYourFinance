@@ -100,4 +100,16 @@ class RedactionUtilTest {
         assertFalse(result.isRedacted());
         assertEquals("REF 12-34-56", result.getText());
     }
+    @Test
+    void removesEmailAndFormattedPhoneFromOneDescription() {
+        var result = RedactionUtil.redact("Refund to alex+shop@example.org, call +1 (507) 555-0123.");
+        assertTrue(result.isRedacted());
+        assertEquals("Refund to [REDACTED], call [REDACTED].", result.getText());
+    }
+
+    @Test
+    void removesDottedPhoneAndKeepsStoreNumber() {
+        var result = RedactionUtil.redact("Shop #4521 507.555.0123");
+        assertEquals("Shop #4521 [REDACTED]", result.getText());
+    }
 }
