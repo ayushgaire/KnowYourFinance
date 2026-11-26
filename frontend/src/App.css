@@ -2035,6 +2035,60 @@
   background: rgba(255, 255, 255, 0.2);
 }
 
+/* What-if panel on the dashboard */
+.spending-scenario details {
+  margin-top: var(--space-2);
+}
+
+.spending-scenario summary {
+  cursor: pointer;
+  padding: var(--space-1) 0;
+  font-weight: 600;
+  color: var(--color-accent-text);
+}
+
+.spending-scenario fieldset {
+  min-width: 0;
+  margin: var(--space-2) 0 var(--space-3);
+  padding: 0 var(--space-3) var(--space-1);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.spending-scenario legend {
+  padding: 0 var(--space-1);
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+.spending-scenario__row + .spending-scenario__row {
+  border-top: 1px solid var(--color-border);
+}
+
+.spending-scenario__row label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 44px;
+  padding: var(--space-1) 0;
+  cursor: pointer;
+  overflow-wrap: anywhere;
+}
+
+.spending-scenario input[type="checkbox"] {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  accent-color: var(--color-interactive);
+  cursor: pointer;
+}
+
+.spending-scenario__results {
+  margin-bottom: var(--space-3);
+}
+
 /* Recurring bills panel on the dashboard */
 .recurring {
   margin-top: var(--space-4);
