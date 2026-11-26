@@ -3,7 +3,7 @@ import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { getMonthlyReport, getReportRange, listTransactions } from "../api";
 import RecurringBills from "./RecurringBills";
 import { detectRecurring } from "../utils/recurring";
-import { categoryLabel, formatCurrency, formatPercent } from "../utils/format";
+import { categoryLabel, formatCurrency, formatDayCellCurrency, formatPercent } from "../utils/format";
 // The two chart components pull in the whole recharts library, which is
 // most of the app's download size. Loading them on demand lets the page
 // shell and the numbers appear first and the charts fill in a moment later.
@@ -511,8 +511,9 @@ function SpendingCalendar({ transactions, year, month }) {
         continue;
       }
       const day = Number(row.date.slice(8, 10));
-      const entry = days.get(day) ?? { total: 0, rows: [] };
-      entry.total += Number(row.amount);
+      const entry = days.get(day) ?? { cents: 0, rows: [] };
+      // Add whole cents, so many small amounts cannot drift the way decimals do.
+      entry.cents += Math.round(Number(row.amount) * 100);
       entry.rows.push(row);
       days.set(day, entry);
     }
@@ -525,37 +526,42 @@ function SpendingCalendar({ transactions, year, month }) {
   const monthLabel = MONTH_NAMES[month - 1];
 
   return (
-    <section className="panel" aria-labelledby="spending-calendar-title">
+    <section className="panel spending-calendar" aria-labelledby="spending-calendar-title">
       <h2 className="panel-title" id="spending-calendar-title">Spending calendar</h2>
       <p className="muted">Select a day to see its recorded expenses.</p>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(7, minmax(0, 1fr))", gap: 4 }}>
+      <div className="spending-calendar__grid">
         {WEEKDAYS.map((day) => <span key={day} className="muted">{day}</span>)}
         {Array.from({ length: firstWeekday }, (_, index) => <span key={`empty-${index}`} />)}
         {Array.from({ length: dayCount }, (_, index) => {
           const day = index + 1;
           const entry = expensesByDay.get(day);
-          const label = entry ? formatCurrency(entry.total) : "no expenses recorded";
+          const label = entry ? formatCurrency(entry.cents / 100) : "no expenses recorded";
           return (
             <button
               key={day}
               type="button"
-              className={`btn ${selectedDay === day ? "btn--primary" : "btn--secondary"}`}
-              style={{ minWidth: 0, minHeight: 44, padding: 4, display: "grid", gap: 2 }}
+              className={`btn spending-calendar__day ${selectedDay === day ? "btn--primary" : "btn--secondary"}`}
               aria-label={`${monthLabel} ${day}, ${label}`}
               aria-pressed={selectedDay === day}
               onClick={() => setSelectedDay(day)}
             >
               <span>{day}</span>
-              <span style={{ fontSize: "0.75rem", overflow: "hidden", textOverflow: "ellipsis" }}>
-                {entry ? formatCurrency(entry.total) : "—"}
-              </span>
+              {entry ? (
+                <>
+                  {/* The stylesheet shows one of these, depending on how wide the calendar is. */}
+                  <span className="spending-calendar__amount spending-calendar__amount--full">{label}</span>
+                  <span className="spending-calendar__amount spending-calendar__amount--short">
+                    {formatDayCellCurrency(entry.cents / 100)}
+                  </span>
+                </>
+              ) : <span className="spending-calendar__amount">—</span>}
             </button>
           );
         })}
       </div>
       {selectedDay !== null && (
-        <div aria-live="polite">
-          <h3 className="panel-title">{monthLabel} {selectedDay}{selected && ` · ${formatCurrency(selected.total)}`}</h3>
+        <div className="spending-calendar__detail" aria-live="polite">
+          <h3 className="panel-title">{monthLabel} {selectedDay}{selected && ` · ${formatCurrency(selected.cents / 100)}`}</h3>
           {selected ? (
             <ul>
               {selected.rows.map((row, index) => (
