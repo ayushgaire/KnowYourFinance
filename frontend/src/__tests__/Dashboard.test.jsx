@@ -1,14 +1,14 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import Dashboard from "../components/Dashboard";
 
 // Answers the dashboard's requests with a report that we control.
-function serve(report) {
+function serve(report, transactions = []) {
   globalThis.fetch = vi.fn().mockImplementation((url) =>
     Promise.resolve({
       ok: true,
       status: 200,
-      json: () => Promise.resolve(String(url).includes("/dashboard/report") ? report : []),
+      json: () => Promise.resolve(String(url).includes("/dashboard/report") ? report : String(url).includes("/transactions") ? transactions : []),
     })
   );
 }
@@ -52,5 +52,31 @@ describe("Dashboard", () => {
     serve({ ...base, totalIncome: 0, totalExpenses: 0, categoryBreakdown: [], previousPeriodHasData: false });
     render(<Dashboard refreshKey={0} onUploadClick={() => {}} onAddClick={() => {}} />);
     expect(await screen.findByText("No transactions yet")).toBeTruthy();
+  });
+
+  it("previews an expense exclusion for the selected period without writing transactions", async () => {
+    const current = new Date(2026, 10, 25, 12);
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(current);
+    try {
+      serve(base, [
+        { id: 1, date: "2026-11-10", description: "Car repair", type: "EXPENSE", amount: "600.00" },
+        { id: 2, date: "2026-10-15", description: "October expense", type: "EXPENSE", amount: 900 },
+        { id: 3, date: "2026-11-11", description: "Payroll", type: "INCOME", amount: 4900 },
+      ]);
+      render(<Dashboard refreshKey={0} />);
+      fireEvent.click(await screen.findByText("Compare without selected expenses"));
+      const repair = screen.getByRole("checkbox", { name: /car repair/i });
+      expect(screen.getAllByRole("checkbox")).toHaveLength(1);
+      fireEvent.click(repair);
+      expect(screen.getByText(/Expenses: \$2,000.00 recorded · \$1,400.00/)).toBeTruthy();
+      expect(screen.getByText(/Net savings: \$2,900.00 recorded · \$3,500.00/)).toBeTruthy();
+      const callCount = globalThis.fetch.mock.calls.length;
+      fireEvent.click(screen.getByRole("button", { name: "Clear selections" }));
+      expect(repair.checked).toBe(false);
+      expect(globalThis.fetch.mock.calls).toHaveLength(callCount);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
