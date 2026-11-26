@@ -7,6 +7,7 @@ import TransactionList from "./components/TransactionList";
 import ManualEntry from "./components/ManualEntry";
 import ProfileBadge from "./components/ProfileBadge";
 import ThemeToggle from "./components/ThemeToggle";
+import ResetDataDialog from "./components/ResetDataDialog";
 import { getProfile } from "./api";
 import { DashboardIcon, UploadIcon, PlusIcon, ListIcon, LockIcon, SavingsIcon } from "./components/Icons";
 
@@ -31,6 +32,7 @@ function App() {
   const [activeTab, setActiveTab] = useState("dashboard");
   const [refreshKey, setRefreshKey] = useState(0);
   const [fullName, setFullName] = useState(null);
+  const [resetOpen, setResetOpen] = useState(false);
 
   // Load the saved name once. If it can't be loaded the app still works,
   // it just asks for the name instead of showing it.
@@ -53,6 +55,11 @@ function App() {
 
   function handleManualAdd() {
     setRefreshKey((key) => key + 1);
+  }
+
+  function handleDataDeleted(result) {
+    setRefreshKey((key) => key + 1);
+    if (result.nameRemoved) setFullName(null);
   }
 
   function goToUpload() {
@@ -123,7 +130,7 @@ function App() {
           </p>
 
           <ThemeToggle />
-          <ProfileBadge fullName={fullName} onSaved={setFullName} />
+          <ProfileBadge fullName={fullName} onSaved={setFullName} onDeleteData={() => setResetOpen(true)} />
         </div>
       </header>
 
@@ -150,6 +157,18 @@ function App() {
           )}
         </div>
       </main>
+
+      {resetOpen && (
+        <ResetDataDialog
+          hasName={Boolean(fullName)}
+          onClose={() => setResetOpen(false)}
+          onDeleted={handleDataDeleted}
+          onUpload={() => {
+            setResetOpen(false);
+            goToUpload();
+          }}
+        />
+      )}
     </div>
   );
 }

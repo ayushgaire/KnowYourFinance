@@ -2,6 +2,7 @@ import PageHero from "./PageHero";
 import { useEffect, useMemo, useState } from "react";
 import { listTransactions, updateTransaction, deleteTransaction } from "../api";
 import { formatCurrency, categoryLabel } from "../utils/format";
+import { downloadTransactionsCsv } from "../utils/csvExport";
 import { SearchIcon, ArrowUpIcon, ArrowDownIcon, EditIcon, TrashIcon, CheckCircleIcon, XIcon } from "./Icons";
 import EmptyState from "./EmptyState";
 
@@ -176,63 +177,7 @@ function TransactionList({ refreshKey, onUploadClick, onAddClick }) {
 
   function exportTransactions() {
     if (loading || invalidDateRange || filtered.length === 0) return;
-
-    const headers = [
-      "Date",
-      "Description",
-      "Category",
-      "Type",
-      "Amount",
-    ];
-
-    // Escape CSV characters and prevent spreadsheet formula injection.
-    function escapeCSV(value) {
-      // Amounts are generated numbers, so keep negative values numeric in spreadsheets.
-      if (typeof value === "number" && Number.isFinite(value)) return String(value);
-
-      let text = String(value ?? "");
-
-      if (/^[\s]*[=+\-@\t\r]/.test(text)) {
-        text = "'" + text;
-      }
-
-      return `"${text.replace(/"/g, '""')}"`;
-    }
-
-    const rows = filtered.map((transaction) => {
-      const amount = Number(transaction.amount);
-
-      return [
-        transaction.date,
-        transaction.description,
-        categoryLabel(transaction.category ?? "OTHER"),
-        transaction.type,
-        transaction.type === "EXPENSE" ? -amount : amount,
-      ];
-    });
-
-    const csv = [headers, ...rows]
-      .map((row) => row.map(escapeCSV).join(","))
-      .join("\r\n");
-
-    const blob = new Blob(["\uFEFF", csv], {
-      type: "text/csv;charset=utf-8;",
-    });
-
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-
-    const today = new Date().toLocaleDateString("en-CA");
-
-    link.href = url;
-    link.download = `know-your-finance-${today}.csv`;
-
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-
-    // Release the temporary download URL.
-    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+    downloadTransactionsCsv(filtered);
   }
 
 

@@ -3,6 +3,7 @@ package com.kyf.knowyourfinance.repository;
 import com.kyf.knowyourfinance.model.Transaction;
 import com.kyf.knowyourfinance.model.TransactionType;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -152,4 +153,15 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
         String getType();
         BigDecimal getTotal();
     }
+
+    /** How many transactions a user has. Used to tell them what a reset will remove. */
+    long countByUserId(Long userId);
+
+    /**
+     * Removes every transaction a user owns in a single statement and
+     * returns how many rows went. Other users' rows are never touched.
+     */
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("DELETE FROM Transaction t WHERE t.userId = :userId")
+    int deleteAllForUser(@Param("userId") Long userId);
 }
