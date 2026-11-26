@@ -2062,3 +2062,58 @@
   color: var(--color-negative);
   font-weight: 600;
 }
+
+/* Spending calendar on the dashboard */
+.spending-calendar {
+  container-type: inline-size;
+}
+
+.spending-calendar__grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 4px;
+}
+
+.spending-calendar__day {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  min-height: 44px;
+  padding: 4px;
+}
+
+.spending-calendar__amount {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.75rem;
+}
+
+.spending-calendar__amount--short {
+  display: none;
+}
+
+.spending-calendar__detail {
+  margin-top: var(--space-4);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--color-border);
+}
+
+/* Narrow cells cannot hold "$1,234.86", so show "$1.2K" instead. */
+@container (max-width: 560px) {
+  .spending-calendar__day {
+    padding: 4px 0;
+  }
+
+  .spending-calendar__amount {
+    font-size: 0.7rem;
+  }
+
+  .spending-calendar__amount--full {
+    display: none;
+  }
+
+  .spending-calendar__amount--short {
+    display: block;
+  }
+}

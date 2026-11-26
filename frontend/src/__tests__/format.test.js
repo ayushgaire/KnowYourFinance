@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { categoryLabel, formatCurrency, formatPercent } from "../utils/format";
+import { categoryLabel, formatCurrency, formatDayCellCurrency, formatPercent } from "../utils/format";
 
 describe("formatCurrency", () => {
   it("shows dollars with two decimals and thousands separators", () => {
@@ -36,5 +36,25 @@ describe("categoryLabel", () => {
   it("falls back to Other when there is no category", () => {
     expect(categoryLabel(null)).toBe("Other");
     expect(categoryLabel(undefined)).toBe("Other");
+  });
+});
+
+describe("formatDayCellCurrency", () => {
+  it("shows whole dollars below a thousand", () => {
+    expect(formatDayCellCurrency(4.5)).toBe("$5");
+    expect(formatDayCellCurrency(150.06)).toBe("$150");
+  });
+
+  it("shortens thousands and millions", () => {
+    expect(formatDayCellCurrency(1234.86)).toBe("$1.2K");
+    expect(formatDayCellCurrency(999.95)).toBe("$1K");
+    expect(formatDayCellCurrency(12999.99)).toBe("$13K");
+    expect(formatDayCellCurrency(12345)).toBe("$12K");
+    expect(formatDayCellCurrency(123456)).toBe("$123K");
+    expect(formatDayCellCurrency(2500000)).toBe("$2.5M");
+  });
+
+  it("never shows a real expense as zero", () => {
+    expect(formatDayCellCurrency(0.3)).toBe("<$1");
   });
 });

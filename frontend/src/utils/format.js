@@ -18,6 +18,25 @@ export function formatCompactCurrency(amount) {
   }).format(Number(amount));
 }
 
+/**
+ * A short amount for a small calendar cell on a phone: "$150", "$1.2K", "$13K".
+ * The exact figure stays in the day's label and in the details under the grid.
+ */
+export function formatDayCellCurrency(amount) {
+  const value = Number(amount);
+  if (value > 0 && value < 1) return "<$1";
+  const dollars = Math.round(value);
+  const compact = dollars >= 1000;
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    notation: compact ? "compact" : "standard",
+    minimumFractionDigits: 0,
+    // "$13K" fits a narrow cell where "$12.5K" would not.
+    maximumFractionDigits: compact && !(dollars >= 10000 && dollars < 1000000) ? 1 : 0,
+  }).format(compact ? value : dollars);
+}
+
 export function formatPercent(value, { signed = false } = {}) {
   const sign = signed && value > 0 ? "+" : "";
   return `${sign}${value.toFixed(1)}%`;
