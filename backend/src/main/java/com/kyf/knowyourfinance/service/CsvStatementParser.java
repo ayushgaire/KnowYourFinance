@@ -10,6 +10,7 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 /**
  * Turns the raw bytes of an uploaded CSV bank statement into a list of
@@ -54,7 +55,7 @@ public class CsvStatementParser {
 
     /** Reads a comma separated file. Kept for callers that have only a stream. */
     public ParseResult parse(InputStream csvInputStream) throws IOException {
-        return parseTable(StatementTableReader.readDelimited(csvInputStream, ','));
+        return parseTable(StatementTableReader.readDelimited(csvInputStream, ','), true);
     }
 
     /**
@@ -62,7 +63,8 @@ public class CsvStatementParser {
      * chosen by the file name's extension.
      */
     public ParseResult parse(InputStream input, String fileName) throws IOException {
-        return parseTable(StatementTableReader.read(input, fileName));
+        return parseTable(StatementTableReader.read(input, fileName),
+                fileName != null && fileName.toLowerCase(Locale.ROOT).endsWith(".csv"));
     }
 
     /**
@@ -71,30 +73,86 @@ public class CsvStatementParser {
      * counted, so one bad line never blocks the rest of the file (FR-103).
      */
     ParseResult parseTable(List<String[]> table) {
+        return parseTable(table, false);
+    }
+
+    private ParseResult parseTable(List<String[]> table, boolean detectHeaders) {
+        ColumnMapping mapping = detectHeaders && !table.isEmpty()
+                ? ColumnMapping.detect(table.getFirst()) : ColumnMapping.LEGACY;
         List<ParsedRow> rows = new ArrayList<>();
         int skippedRowCount = 0;
 
-        // The first row is the header. We do not check its wording, we
-        // only assume the column order: Date, Description, Amount.
+        // Start after the header, retaining the legacy positional layout for unfamiliar headers.
         for (int i = 1; i < table.size(); i++) {
             String[] columns = table.get(i);
             if (columns.length == 0 || isBlankRow(columns)) {
                 continue; // blank lines are normal, not a parse failure
             }
-            if (columns.length < 3) {
+            if (columns.length <= mapping.lastColumn()) {
                 skippedRowCount++;
                 continue;
             }
             try {
-                LocalDate date = parseDate(columns[0].trim());
-                String description = columns[1].trim();
-                BigDecimal amount = parseAmount(columns[2]);
+                LocalDate date = parseDate(columns[mapping.date()].trim());
+                String description = columns[mapping.description()].trim();
+                BigDecimal amount = mapping.readAmount(columns);
                 rows.add(new ParsedRow(date, description, amount));
             } catch (DateTimeParseException | NumberFormatException e) {
                 skippedRowCount++;
             }
         }
         return new ParseResult(rows, skippedRowCount);
+    }
+
+    private record ColumnMapping(int date, int description, int amount, int debit, int credit) {
+        private static final ColumnMapping LEGACY = new ColumnMapping(0, 1, 2, -1, -1);
+
+        static ColumnMapping detect(String[] header) {
+            int date = find(header, "date", "transaction date", "posting date", "posted date", "post date");
+            int description = find(header, "description", "transaction description", "merchant", "payee", "memo");
+            int amount = find(header, "amount", "transaction amount", "signed amount");
+            int debit = find(header, "debit", "debit amount", "withdrawal", "withdrawals", "money out");
+            int credit = find(header, "credit", "credit amount", "deposit", "deposits", "money in");
+
+            if (date < 0 || description < 0) {
+                return LEGACY;
+            }
+            if (debit >= 0 && credit >= 0) {
+                return new ColumnMapping(date, description, -1, debit, credit);
+            }
+            return amount >= 0 ? new ColumnMapping(date, description, amount, -1, -1) : LEGACY;
+        }
+
+        private static int find(String[] header, String... aliases) {
+            for (String alias : aliases) {
+                for (int i = 0; i < header.length; i++) {
+                    String name = header[i].strip().toLowerCase(Locale.ROOT)
+                            .replaceAll("[ _-]+", " ");
+                    if (name.equals(alias)) {
+                        return i;
+                    }
+                }
+            }
+            return -1;
+        }
+
+        int lastColumn() {
+            return Math.max(Math.max(date, description), Math.max(amount, Math.max(debit, credit)));
+        }
+
+        BigDecimal readAmount(String[] columns) {
+            if (amount >= 0) {
+                return parseAmount(columns[amount]);
+            }
+            String debitText = columns[debit];
+            String creditText = columns[credit];
+            BigDecimal out = debitText.isBlank() ? BigDecimal.ZERO : parseAmount(debitText).abs();
+            BigDecimal in = creditText.isBlank() ? BigDecimal.ZERO : parseAmount(creditText).abs();
+            if ((debitText.isBlank() && creditText.isBlank()) || (out.signum() > 0 && in.signum() > 0)) {
+                throw new NumberFormatException("Expected one debit or credit");
+            }
+            return in.subtract(out);
+        }
     }
 
     private static boolean isBlankRow(String[] columns) {
