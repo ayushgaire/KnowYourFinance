@@ -256,3 +256,39 @@ export async function saveBudget(month, category, limitAmount) {
 export async function removeBudget(month, category) {
   return budgetResponse(await fetch(budgetUrl(month, category), { method: "DELETE" }));
 }
+
+/**
+ * How much data this person has stored, so the reset screen can say what
+ * it is about to remove. Resolves to { transactions, budgets }.
+ */
+export async function getDataSummary() {
+  const response = await fetch(`${API_BASE}/data/summary?userId=${CURRENT_USER_ID}`);
+  if (!response.ok) {
+    throw new Error(`Failed to load your data summary (${response.status})`);
+  }
+  return response.json();
+}
+
+/**
+ * Permanently removes this person's transactions and budgets, and the saved
+ * name too when includeName is true. The backend insists on the confirm
+ * word, so a stray call can never wipe anything. Resolves to
+ * { deletedTransactions, deletedBudgets, nameRemoved }.
+ */
+export async function resetData({ includeName = false } = {}) {
+  const response = await fetch(
+    `${API_BASE}/data?userId=${CURRENT_USER_ID}&confirm=DELETE&includeName=${includeName}`,
+    { method: "DELETE" }
+  );
+  if (!response.ok) {
+    let message = `Failed to delete your data (${response.status})`;
+    try {
+      const body = await response.json();
+      if (body && body.message) message = body.message;
+    } catch {
+      // keep the generic message
+    }
+    throw new Error(message);
+  }
+  return response.json();
+}

@@ -7,7 +7,7 @@ import { initials } from "../utils/names";
  * name. Pressing it opens a small form to add or change the name. With no
  * name saved yet it invites them to add one.
  */
-function ProfileBadge({ fullName, onSaved }) {
+function ProfileBadge({ fullName, onSaved, onDeleteData }) {
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState("");
   const [saving, setSaving] = useState(false);
@@ -96,6 +96,18 @@ function ProfileBadge({ fullName, onSaved }) {
               Cancel
             </button>
           </div>
+          {onDeleteData && (
+            <button
+              type="button"
+              className="profile__danger"
+              onClick={() => {
+                setOpen(false);
+                onDeleteData();
+              }}
+            >
+              Delete all my data...
+            </button>
+          )}
         </form>
       )}
     </div>

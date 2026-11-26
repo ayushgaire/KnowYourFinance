@@ -36,6 +36,8 @@
   --color-warning-text: #93630f;
   --color-warning: #996415;
   --color-over: #a33c32;
+  --color-danger: #a33c32;
+  --color-danger-hover: #8c3229;
 
   /* Structure */
   --color-border: #dde4e0;
@@ -86,6 +88,8 @@
   --color-warning-text: #e6b865;
   --color-warning: #d9a441;
   --color-over: #e0776b;
+  --color-danger: #b5473c;
+  --color-danger-hover: #c4564a;
 
   --color-border: #2c3b35;
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
