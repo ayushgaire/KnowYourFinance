@@ -16,6 +16,8 @@ RUN npm run build
 # ---------- Stage 2: serve it with nginx ----------
 FROM nginx:1.31-alpine
 COPY nginx.conf /etc/nginx/conf.d/default.conf
+# Kept outside conf.d so nginx loads it only where nginx.conf includes it.
+COPY security-headers.conf /etc/nginx/snippets/security-headers.conf
 COPY --from=build /app/dist /usr/share/nginx/html
 EXPOSE 80
 HEALTHCHECK --interval=10s --timeout=5s --start-period=5s --retries=3 \
