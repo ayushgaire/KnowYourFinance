@@ -328,13 +328,16 @@ function Dashboard({ fullName, refreshKey, onUploadClick, onAddClick, onViewTran
   );
 }
 
+// How many expenses the what-if panel offers, biggest first.
+const SCENARIO_LIMIT = 8;
+
 function SpendingScenario({ transactions, start, end, expenses, savings }) {
   const [excluded, setExcluded] = useState([]);
   const candidates = useMemo(() => transactions
     .filter((row) => row.id != null && row.type === "EXPENSE" &&
       row.date >= start && row.date <= end && Number(row.amount) > 0)
     .sort((a, b) => Number(b.amount) - Number(a.amount) || b.date.localeCompare(a.date))
-    .slice(0, 8), [transactions, start, end]);
+    .slice(0, SCENARIO_LIMIT), [transactions, start, end]);
 
   if (candidates.length === 0) return null;
 
@@ -342,15 +345,15 @@ function SpendingScenario({ transactions, start, end, expenses, savings }) {
     excluded.includes(row.id) ? total + Number(row.amount) : total, 0);
 
   return (
-    <section className="panel" aria-labelledby="spending-scenario-title">
+    <section className="panel spending-scenario" aria-labelledby="spending-scenario-title">
       <h2 className="panel-title" id="spending-scenario-title">What if I hadn’t spent that?</h2>
       <p className="muted">Select one-off expenses to see how they affected this period. Your transactions stay as recorded.</p>
       <details>
         <summary>Compare without selected expenses</summary>
         <fieldset>
-          <legend>Largest expenses in this period</legend>
+          <legend>Up to {SCENARIO_LIMIT} largest expenses in this period</legend>
           {candidates.map((row) => (
-            <div key={row.id}>
+            <div key={row.id} className="spending-scenario__row">
               <label>
                 <input
                   type="checkbox"
@@ -361,12 +364,12 @@ function SpendingScenario({ transactions, start, end, expenses, savings }) {
                       ? [...previous, row.id] : previous.filter((id) => id !== row.id));
                   }}
                 />
-                {" "}{row.description} · {row.date} · {formatCurrency(row.amount)}
+                <span>{row.description} · {row.date} · {formatCurrency(row.amount)}</span>
               </label>
             </div>
           ))}
         </fieldset>
-        <div aria-live="polite" aria-atomic="true">
+        <div className="spending-scenario__results" aria-live="polite" aria-atomic="true">
           <p>Expenses: {formatCurrency(expenses)} recorded · {formatCurrency(expenses - selectedTotal)} in this scenario</p>
           <p>Net savings: {formatCurrency(savings)} recorded · {formatCurrency(savings + selectedTotal)} in this scenario</p>
         </div>
