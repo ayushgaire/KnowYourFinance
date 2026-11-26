@@ -119,7 +119,29 @@ class InsightsServiceTest {
         // DINING jumped $110 (40 -> 150), GROCERIES only jumped $10 -
         // DINING should be called out, not GROCERIES.
         assertTrue(insights.stream().anyMatch(
-                s -> s.contains("DINING") && s.contains("$40.00") && s.contains("$150.00")));
-        assertTrue(insights.stream().noneMatch(s -> s.contains("GROCERIES")));
+                s -> s.contains("Dining") && s.contains("$40.00") && s.contains("$150.00")));
+        assertTrue(insights.stream().noneMatch(s -> s.contains("Groceries")));
+    }
+
+    @Test
+    void writesTheCategoryAsAReadableNameInsteadOfCapitals() {
+        assertTrue(categoryJumpInsights(TransactionCategory.GROCERIES).contains(
+                "Groceries spending went from $0.00 to $150.06 — the biggest jump this month."));
+    }
+
+    @Test
+    void writesATwoWordCategoryWithSpacesAndNoUnderscore() {
+        assertTrue(categoryJumpInsights(TransactionCategory.RENT_MORTGAGE).contains(
+                "Rent Mortgage spending went from $0.00 to $150.06 — the biggest jump this month."));
+    }
+
+    // A month where one category went from nothing to $150.06.
+    private List<String> categoryJumpInsights(TransactionCategory category) {
+        MonthlyReportResponse current = report(
+                new BigDecimal("3000.00"), new BigDecimal("150.06"),
+                List.of(new MonthlyReportResponse.CategoryBreakdownItem(category, new BigDecimal("150.06"))));
+        MonthlyReportResponse previous = report(BigDecimal.ZERO, BigDecimal.ZERO, List.of());
+
+        return insightsService.generate(current, previous);
     }
 }

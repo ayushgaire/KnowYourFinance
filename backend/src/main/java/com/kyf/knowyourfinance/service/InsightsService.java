@@ -1,6 +1,7 @@
 package com.kyf.knowyourfinance.service;
 
 import com.kyf.knowyourfinance.dto.MonthlyReportResponse;
+import com.kyf.knowyourfinance.model.TransactionCategory;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -8,6 +9,7 @@ import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 /**
@@ -86,18 +88,18 @@ public class InsightsService {
 
     private void addBiggestCategoryIncreaseInsight(
             List<String> insights, MonthlyReportResponse current, MonthlyReportResponse previous) {
-        Map<String, BigDecimal> previousByCategory = new HashMap<>();
+        Map<TransactionCategory, BigDecimal> previousByCategory = new HashMap<>();
         for (var item : previous.getCategoryBreakdown()) {
-            previousByCategory.put(item.getCategory().name(), item.getTotal());
+            previousByCategory.put(item.getCategory(), item.getTotal());
         }
 
-        String biggestIncreaseCategory = null;
+        TransactionCategory biggestIncreaseCategory = null;
         BigDecimal biggestIncreaseAmount = BigDecimal.ZERO;
         BigDecimal biggestIncreasePreviousAmount = BigDecimal.ZERO;
 
         for (var item : current.getCategoryBreakdown()) {
             BigDecimal previousAmount = previousByCategory.getOrDefault(
-                    item.getCategory().name(), BigDecimal.ZERO);
+                    item.getCategory(), BigDecimal.ZERO);
             BigDecimal increase = item.getTotal().subtract(previousAmount);
 
             // Require a real jump, not just "$1 more than last month" -
@@ -105,7 +107,7 @@ public class InsightsService {
             // largest increase seen so far.
             if (increase.compareTo(new BigDecimal("20")) > 0
                     && increase.compareTo(biggestIncreaseAmount) > 0) {
-                biggestIncreaseCategory = item.getCategory().name();
+                biggestIncreaseCategory = item.getCategory();
                 biggestIncreaseAmount = increase;
                 biggestIncreasePreviousAmount = previousAmount;
             }
@@ -113,10 +115,23 @@ public class InsightsService {
 
         if (biggestIncreaseCategory != null) {
             BigDecimal newAmount = biggestIncreasePreviousAmount.add(biggestIncreaseAmount);
-            insights.add(biggestIncreaseCategory.replace('_', ' ') + " spending went from "
+            insights.add(label(biggestIncreaseCategory) + " spending went from "
                     + money(biggestIncreasePreviousAmount) + " to " + money(newAmount)
                     + " — the biggest jump this month.");
         }
+    }
+
+    // "RENT_MORTGAGE" becomes "Rent Mortgage", the same way the web page
+    // writes category names.
+    private String label(TransactionCategory category) {
+        StringBuilder label = new StringBuilder();
+        for (String word : category.name().split("_")) {
+            if (!label.isEmpty()) {
+                label.append(' ');
+            }
+            label.append(word.charAt(0)).append(word.substring(1).toLowerCase(Locale.ROOT));
+        }
+        return label.toString();
     }
 
     private String money(BigDecimal amount) {
