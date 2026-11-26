@@ -254,4 +254,37 @@ class CsvStatementParserTest {
     void aFileThatIsNotReallyAWorkbookFailsInsteadOfReturningGarbage() {
         assertThrows(IOException.class, () -> parseFile("this is plain text", "fake.xlsx"));
     }
+
+    @Test
+    void detectsReorderedSignedAmountAndPrefersTransactionDate() throws IOException {
+        String csv = """
+                Posting Date,Amount,Payee,Transaction Date
+                2026-09-04,-42.25,Groceries,2026-09-02
+                """;
+        var result = new CsvStatementParser().parse(
+                new ByteArrayInputStream(csv.getBytes(StandardCharsets.UTF_8)), "reordered.csv");
+
+        assertEquals(0, result.getSkippedRowCount());
+        var row = result.getRows().getFirst();
+        assertEquals(LocalDate.of(2026, 9, 2), row.getDate());
+        assertEquals("Groceries", row.getDescription());
+        assertEquals(new BigDecimal("-42.25"), row.getAmount());
+    }
+
+    @Test
+    void interpretsDebitAndCreditColumnsAndSkipsAmbiguousRows() throws IOException {
+        String csv = """
+                Credit,Merchant,Debit,Posted Date
+                ,Groceries,42.25,2026-09-02
+                900.00,Payroll,0,2026-09-03
+                5.00,Ambiguous,2.00,2026-09-04
+                ,Missing amounts,,2026-09-05
+                """;
+        var result = new CsvStatementParser().parse(
+                new ByteArrayInputStream(csv.getBytes(StandardCharsets.UTF_8)), "debits.csv");
+
+        assertEquals(2, result.getSkippedRowCount());
+        assertEquals(List.of(new BigDecimal("-42.25"), new BigDecimal("900.00")),
+                result.getRows().stream().map(CsvStatementParser.ParsedRow::getAmount).toList());
+    }
 }
