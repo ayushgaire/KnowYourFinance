@@ -148,7 +148,11 @@ public class CsvStatementParser {
             String creditText = columns[credit];
             BigDecimal out = debitText.isBlank() ? BigDecimal.ZERO : parseAmount(debitText).abs();
             BigDecimal in = creditText.isBlank() ? BigDecimal.ZERO : parseAmount(creditText).abs();
-            if ((debitText.isBlank() && creditText.isBlank()) || (out.signum() > 0 && in.signum() > 0)) {
+            // Exactly one side must hold money. A row where both are blank or
+            // zero is not a transaction, so it is skipped and counted.
+            boolean neitherSide = out.signum() == 0 && in.signum() == 0;
+            boolean bothSides = out.signum() > 0 && in.signum() > 0;
+            if (neitherSide || bothSides) {
                 throw new NumberFormatException("Expected one debit or credit");
             }
             return in.subtract(out);

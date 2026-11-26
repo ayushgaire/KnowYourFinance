@@ -287,4 +287,73 @@ class CsvStatementParserTest {
         assertEquals(List.of(new BigDecimal("-42.25"), new BigDecimal("900.00")),
                 result.getRows().stream().map(CsvStatementParser.ParsedRow::getAmount).toList());
     }
+
+    @Test
+    void skipsRowsWhereDebitAndCreditAreBothZeroOrBlank() throws IOException {
+        String csv = """
+                Date,Description,Debit,Credit
+                2026-09-01,BOTH ZERO,0,0
+                2026-09-02,ZERO DEBIT ONLY,0.00,
+                2026-09-03,ZERO CREDIT ONLY,,$0.00
+                2026-09-04,BOTH BLANK, ,
+                2026-09-05,COFFEE,4.50,0.00
+                2026-09-06,PAYROLL,0,900.00
+                """;
+
+        CsvStatementParser.ParseResult result = parseFile(csv, "zeros.csv");
+
+        assertEquals(4, result.getSkippedRowCount());
+        assertEquals(List.of("COFFEE", "PAYROLL"),
+                result.getRows().stream().map(CsvStatementParser.ParsedRow::getDescription).toList());
+        assertEquals(List.of(new BigDecimal("-4.50"), new BigDecimal("900.00")),
+                result.getRows().stream().map(CsvStatementParser.ParsedRow::getAmount).toList());
+    }
+
+    @Test
+    void detectsHeadersInAFileThatStartsWithAByteOrderMark() throws IOException {
+        // The columns are reordered, so this only works if the first header is
+        // still recognized with the mark in front of it, as in Excel's
+        // "CSV UTF-8" export.
+        String csv = "\uFEFFAmount,Description,Date\n-4.50,COFFEE,2026-09-01\n";
+
+        CsvStatementParser.ParseResult result = parseFile(csv, "excel.csv");
+
+        assertEquals(0, result.getSkippedRowCount());
+        var row = result.getRows().getFirst();
+        assertEquals(LocalDate.of(2026, 9, 1), row.getDate());
+        assertEquals("COFFEE", row.getDescription());
+        assertEquals(new BigDecimal("-4.50"), row.getAmount());
+    }
+
+    @Test
+    void anUnfamiliarHeaderFallsBackToDateDescriptionAmountOrder() throws IOException {
+        String csv = """
+                When,What,How Much
+                2026-09-01,COFFEE,-4.50
+                """;
+
+        CsvStatementParser.ParseResult result = parseFile(csv, "unfamiliar.csv");
+
+        assertEquals(0, result.getSkippedRowCount());
+        var row = result.getRows().getFirst();
+        assertEquals(LocalDate.of(2026, 9, 1), row.getDate());
+        assertEquals("COFFEE", row.getDescription());
+        assertEquals(new BigDecimal("-4.50"), row.getAmount());
+    }
+
+    @Test
+    void recognizesHeadersWrittenWithUnderscores() throws IOException {
+        String csv = """
+                Transaction_Amount,Transaction_Description,Transaction_Date
+                -4.50,COFFEE,2026-09-01
+                """;
+
+        CsvStatementParser.ParseResult result = parseFile(csv, "underscores.csv");
+
+        assertEquals(0, result.getSkippedRowCount());
+        var row = result.getRows().getFirst();
+        assertEquals(LocalDate.of(2026, 9, 1), row.getDate());
+        assertEquals("COFFEE", row.getDescription());
+        assertEquals(new BigDecimal("-4.50"), row.getAmount());
+    }
 }
