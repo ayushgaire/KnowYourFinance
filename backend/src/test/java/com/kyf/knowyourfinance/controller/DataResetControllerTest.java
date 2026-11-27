@@ -33,7 +33,7 @@ class DataResetControllerTest {
 
     @Test
     void summaryReturnsTheCounts() throws Exception {
-        when(service.summary(1L)).thenReturn(new DataSummary(38, 3));
+        when(service.summary(1L)).thenReturn(new DataSummary(38, 3, 0, 0));
 
         mockMvc.perform(get("/api/data/summary"))
                 .andExpect(status().isOk())

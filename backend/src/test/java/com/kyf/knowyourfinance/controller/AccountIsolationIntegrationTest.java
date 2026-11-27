@@ -123,6 +123,48 @@ class AccountIsolationIntegrationTest {
                 .andExpect(status().isOk()).andExpect(jsonPath("$[0].id").value(id));
     }
 
+    @Test
+    void planningRecordsPersistWithinOneAccountAndAreRemovedOnReset() throws Exception {
+        MockHttpSession first = credentials("signup", "planner-one@example.test");
+        MockHttpSession second = credentials("signup", "planner-two@example.test");
+        String draft = """
+                {"name":"Emergency fund","targetAmount":1000,"savedAmount":250,"deadline":"2027-06-30"}
+                """;
+        String created = mvc.perform(withCsrf(post("/api/planning/goals"), first)
+                        .contentType(MediaType.APPLICATION_JSON).content(draft))
+                .andExpect(status().isCreated()).andReturn().getResponse().getContentAsString();
+        String goalId = json.readTree(created).get("id").asText();
+
+        mvc.perform(get("/api/planning/goals").session(second))
+                .andExpect(status().isOk()).andExpect(content().json("[]"));
+        mvc.perform(withCsrf(delete("/api/planning/goals/{id}", goalId), second))
+                .andExpect(status().isNotFound());
+        mvc.perform(withCsrf(put("/api/planning/goals/{id}", goalId), first)
+                        .contentType(MediaType.APPLICATION_JSON).content(draft.replace("250", "300")))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.savedAmount").value(300));
+
+        for (String status : new String[]{"ESSENTIAL", "CANCELLED"}) {
+            mvc.perform(withCsrf(put("/api/planning/subscriptions"), first)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(json.writeValueAsString(Map.of("merchantKey", "MUSIC", "status", status))))
+                    .andExpect(status().isNoContent());
+        }
+        mvc.perform(get("/api/planning/subscriptions").session(first))
+                .andExpect(status().isOk()).andExpect(jsonPath("$[0].status").value("CANCELLED"));
+        mvc.perform(get("/api/planning/subscriptions").session(second))
+                .andExpect(status().isOk()).andExpect(content().json("[]"));
+
+        mvc.perform(get("/api/data/summary").session(first)).andExpect(status().isOk())
+                .andExpect(jsonPath("$.goals").value(1))
+                .andExpect(jsonPath("$.subscriptionReviews").value(1));
+        mvc.perform(withCsrf(delete("/api/data"), first).param("confirm", "DELETE"))
+                .andExpect(status().isOk());
+        mvc.perform(get("/api/planning/goals").session(first))
+                .andExpect(status().isOk()).andExpect(content().json("[]"));
+        mvc.perform(get("/api/planning/subscriptions").session(first))
+                .andExpect(status().isOk()).andExpect(content().json("[]"));
+    }
+
     private MockHttpSession credentials(String action, String email) throws Exception {
         var session = new MockHttpSession();
         String preAuthId = session.getId();
