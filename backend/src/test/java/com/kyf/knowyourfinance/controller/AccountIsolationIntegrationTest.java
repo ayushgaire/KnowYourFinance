@@ -11,6 +11,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockHttpSession;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
@@ -20,6 +21,7 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.util.Map;
 
@@ -93,6 +95,26 @@ class AccountIsolationIntegrationTest {
                 .andExpect(status().isOk()).andExpect(jsonPath("$.deletedTransactions").value(0));
         assertTrue(transactions.existsById(id));
         assertTrue(transactions.existsById(legacy.getId()));
+
+        var statement = new MockMultipartFile("files", "synthetic.csv", "text/csv",
+                "Date,Description,Amount\n2026-09-03,Synthetic bus ticket,-3.50\n"
+                        .getBytes(StandardCharsets.UTF_8));
+        mvc.perform(withCsrf(multipart("/api/statements/upload-batch").file(statement), second)
+                        .param("userId", Long.toString(owner)).param("preview", "true"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.files[0].result.transactionsSaved").value(1));
+        mvc.perform(get("/api/transactions").session(second))
+                .andExpect(status().isOk()).andExpect(content().json("[]"));
+        mvc.perform(withCsrf(multipart("/api/statements/upload-batch").file(statement), second)
+                        .param("userId", Long.toString(owner)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.files[0].result.transactionsSaved").value(1));
+        mvc.perform(get("/api/transactions").session(second))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].description").value("Synthetic bus ticket"));
+        mvc.perform(get("/api/transactions").session(first))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].id").value(id));
 
         mvc.perform(withCsrf(post("/api/auth/signout"), first)).andExpect(status().isNoContent());
         assertTrue(first.isInvalid());
