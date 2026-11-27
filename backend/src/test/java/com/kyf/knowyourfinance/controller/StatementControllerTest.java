@@ -111,7 +111,7 @@ class StatementControllerTest {
         mockMvc.perform(multipart("/api/statements/upload-batch")
                         .file(batchFile("jan.csv", "Date,Description,Amount\n".getBytes()))
                         .file(batchFile("feb.xlsx", "x".getBytes()))
-                        )
+                        .with(csrf()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.files.length()").value(2))
                 .andExpect(jsonPath("$.files[0].fileName").value("jan.csv"))
@@ -154,7 +154,7 @@ class StatementControllerTest {
     @Test
     void aBatchWithNoFilesIsRejected() throws Exception {
         mockMvc.perform(multipart("/api/statements/upload-batch").with(csrf()))
-                .andExpect(status().isBadRequest().with(csrf()))
+                .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message").value("Choose at least one file."));
     }
 
@@ -168,7 +168,7 @@ class StatementControllerTest {
         mockMvc.perform(multipart("/api/statements/upload-batch")
                         .file(batchFile("good.csv", "Date,Description,Amount\n".getBytes()))
                         .file(batchFile("notes.pdf", "pdf".getBytes()))
-                        )
+                        .with(csrf()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.files[0].success").value(true))
                 .andExpect(jsonPath("$.files[1].success").value(false))
@@ -182,7 +182,7 @@ class StatementControllerTest {
     void anEmptyFileInABatchIsReportedWithoutCallingTheService() throws Exception {
         mockMvc.perform(multipart("/api/statements/upload-batch")
                         .file(batchFile("empty.csv", new byte[0]))
-                        )
+                        .with(csrf()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.files[0].success").value(false))
                 .andExpect(jsonPath("$.files[0].message").value("The file is empty."));
@@ -197,7 +197,7 @@ class StatementControllerTest {
 
         mockMvc.perform(multipart("/api/statements/upload-batch")
                         .file(batchFile("broken.xlsx", "not really a workbook".getBytes()))
-                        )
+                        .with(csrf()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.files[0].success").value(false))
                 .andExpect(jsonPath("$.files[0].message").value(
