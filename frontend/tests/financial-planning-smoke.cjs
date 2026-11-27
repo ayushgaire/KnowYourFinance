@@ -36,8 +36,15 @@ async function run() {
     await page.getByRole("heading", { name: "Daily financial briefing" }).waitFor();
     await page.getByText("Safe to spend and balance forecast", { exact: true }).click();
     await page.getByLabel("Current available cash").fill("700");
-    await page.getByText("Next seven days ·", { exact: true }).getByText("$700.00", { exact: true }).waitFor();
-    await page.getByText("$100.00", { exact: true }).waitFor();
+    const weeklyEstimate = page.getByRole("listitem").filter({ hasText: /Next seven days/ });
+    const dailyEstimate = page.getByRole("listitem").filter({ hasText: /^Today ·/ });
+    try {
+      assert.match(await weeklyEstimate.innerText(), /\$700\.00/);
+      assert.match(await dailyEstimate.innerText(), /\$100\.00/);
+    } catch (error) {
+      console.error(await page.getByRole("region", { name: "Daily financial briefing" }).innerText());
+      throw error;
+    }
 
     await page.getByText("Add savings goal", { exact: true }).click();
     await page.getByLabel("Goal name").fill("Emergency fund");
