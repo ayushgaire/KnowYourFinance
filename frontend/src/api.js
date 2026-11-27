@@ -313,3 +313,21 @@ export async function resetData({ includeName = false } = {}) {
   }
   return response.json();
 }
+
+async function planningRequest(path, method = "GET", data) {
+  const response = await apiFetch(`${API_BASE}/planning/${path}`, {
+    method,
+    ...(data && { headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) }),
+  });
+  if (!response.ok) throw new Error("Could not complete the planning request.");
+  if (response.status !== 204) return response.json();
+}
+
+export const listGoals = () => planningRequest("goals");
+export const saveGoal = (goal, id) => id
+  ? planningRequest(`goals/${encodeURIComponent(id)}`, "PUT", goal)
+  : planningRequest("goals", "POST", goal);
+export const removeGoal = (id) => planningRequest(`goals/${encodeURIComponent(id)}`, "DELETE");
+export const listSubscriptionDecisions = () => planningRequest("subscriptions");
+export const saveSubscriptionDecision = (merchantKey, status) =>
+  planningRequest("subscriptions", "PUT", { merchantKey, status });
