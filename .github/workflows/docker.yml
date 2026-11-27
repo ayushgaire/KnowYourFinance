@@ -191,6 +191,10 @@ jobs:
           rm "$RUNNER_TEMP/kyf-smoke-password"
           curl -fsS -b "$jar" "http://localhost:3000/api/transactions" | grep -q "Smoke test coffee"
           curl -fsS -b "$jar" "http://localhost:3000/api/transactions" | grep -q "FEB BOOKSTORE"
+      - name: Verify financial planning in a mobile browser
+        run: |
+          npm install --prefix "$RUNNER_TEMP/kyf-browser" --no-audit --no-fund playwright@1.58.2
+          NODE_PATH="$RUNNER_TEMP/kyf-browser/node_modules" node frontend/tests/financial-planning-smoke.cjs
       - name: Show logs if something failed
         if: failure()
         run: docker compose logs --tail=100
